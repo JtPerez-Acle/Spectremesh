@@ -160,7 +160,7 @@ brew install opencv pkg-config
 ### Quick Start
 ```bash
 # Clone and build
-git clone <repository>
+git clone <https://github.com/JtPerez-Acle/Spectremesh>
 cd spectremesh
 
 # Test with mock implementation (no hardware required)
