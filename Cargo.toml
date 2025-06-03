@@ -1,0 +1,52 @@
+[workspace]
+members = [
+    "crates/core",
+    "crates/fear_sensor", 
+    "crates/terrain",
+    "crates/game",
+]
+resolver = "2"
+
+[workspace.dependencies]
+# Core dependencies with exact versions
+bevy = { version = "0.16", default-features = false }
+tokio = { version = "1.0", features = ["rt-multi-thread", "macros", "time"] }
+async-channel = "2.0"
+serde = { version = "1.0", features = ["derive"] }
+thiserror = "1.0"
+tracing = "0.1"
+
+# Computer vision and ML
+opencv = { version = "0.94", default-features = false }
+ort = { version = "2.0.0-rc.10" }
+ndarray = "0.15"
+
+# Noise and terrain
+fastnoise-lite = "1.0"
+
+# Configuration and serialization
+toml = "0.8"
+dirs = "5.0"
+
+# Development dependencies
+async-trait = "0.1"
+
+[workspace.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
+
+# Profile configurations
+[profile.dev]
+opt-level = 1
+debug = true
+split-debuginfo = "unpacked"
+
+[profile.release]
+opt-level = 3
+debug = false
+lto = "thin"
+codegen-units = 1
+panic = "abort"
+
+[profile.dev.package."*"]
+opt-level = 2  # Optimize dependencies in dev mode for better performance

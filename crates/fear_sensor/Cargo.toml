@@ -1,0 +1,36 @@
+[package]
+name = "spectremesh-fear-sensor"
+version = "0.1.0"
+edition = "2021"
+authors = ["SpectreMesh Team"]
+description = "Fear detection and emotion recognition for SpectreMesh"
+license = "MIT"
+
+[dependencies]
+spectremesh-core = { path = "../core" }
+
+# Computer vision
+opencv = { workspace = true, features = ["imgproc", "objdetect", "videoio"] }
+
+# ONNX runtime
+ort = { workspace = true }
+
+# Math and arrays
+ndarray = { workspace = true }
+
+# Async
+tokio = { workspace = true }
+async-channel = { workspace = true }
+async-trait = { workspace = true }
+
+# Utilities
+serde = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+
+[features]
+default = []
+mock = []  # Mock implementation for testing
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["test-util"] }

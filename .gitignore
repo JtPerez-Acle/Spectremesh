@@ -1,0 +1,300 @@
+# SpectreMesh .gitignore
+# Comprehensive exclusions for Rust + OpenCV + ONNX + Bevy project
+
+# Rust
+/target/
+**/*.rs.bk
+*.pdb
+Cargo.lock
+
+# Build artifacts
+/build/
+/dist/
+/release/
+
+# IDE and Editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# JetBrains IDEs
+.idea/
+*.iml
+*.ipr
+*.iws
+
+# Visual Studio Code
+.vscode/
+*.code-workspace
+
+# Vim
+*.swp
+*.swo
+*.tmp
+
+# Emacs
+*~
+\#*\#
+/.emacs.desktop
+/.emacs.desktop.lock
+*.elc
+auto-save-list
+tramp
+.\#*
+
+# Sublime Text
+*.sublime-project
+*.sublime-workspace
+
+# Model files and assets (large binary files)
+assets/models/*.onnx
+assets/models/*.pb
+assets/models/*.tflite
+assets/models/*.xml
+assets/models/*.bin
+assets/models/*.dat
+
+# Keep README files in assets
+!assets/models/README.md
+!assets/*/README.md
+
+# Audio and video assets
+assets/sounds/*.wav
+assets/sounds/*.mp3
+assets/sounds/*.ogg
+assets/videos/*.mp4
+assets/videos/*.avi
+
+# Generated shader files
+assets/shaders/compiled/
+*.spv
+
+# Temporary files
+*.tmp
+*.temp
+*.log
+*.cache
+
+# OS-specific files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# Linux
+*~
+.fuse_hidden*
+.directory
+.Trash-*
+.nfs*
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+*.cab
+*.msi
+*.msm
+*.msp
+*.lnk
+
+# OpenCV build artifacts
+opencv_build/
+opencv_contrib/
+build_opencv/
+
+# ONNX Runtime artifacts
+onnxruntime/
+onnxruntime_build/
+
+# Bevy hot reload
+.bevy_hot_reload/
+
+# Profiling and debugging
+*.prof
+*.trace
+perf.data*
+callgrind.out.*
+massif.out.*
+
+# Test artifacts
+test_output/
+test_results/
+coverage/
+*.gcda
+*.gcno
+*.profraw
+
+# Documentation build
+book/
+docs/_build/
+site/
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Package manager files
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Python (if any Python tools are used)
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+
+# CMake (if used for native dependencies)
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+Makefile
+*.cmake
+
+# Backup files
+*.bak
+*.backup
+*.old
+*.orig
+
+# Compressed files
+*.zip
+*.tar.gz
+*.rar
+*.7z
+
+# Local configuration
+config.local.toml
+settings.local.json
+
+# Runtime data
+data/
+logs/
+*.pid
+
+# Benchmark results
+criterion/
+bench_results/
+
+# Security
+*.key
+*.pem
+*.crt
+*.p12
+secrets.toml
+
+# Development databases
+*.db
+*.sqlite
+*.sqlite3
+
+# Jupyter notebooks (if any)
+.ipynb_checkpoints/
+
+# Docker
+.dockerignore
+docker-compose.override.yml
+
+# Nix
+result
+result-*
+
+# direnv
+.envrc
+
+# Local development scripts
+dev_*.sh
+local_*.sh
+test_local_*
+
+# Editor swap files
+.*.swp
+.*.swo
+
+# Temporary build directories
+tmp/
+temp/
+.tmp/
+
+# Platform-specific build outputs
+*.exe
+*.dll
+*.dylib
+*.so
+
+# Rust-analyzer
+rust-project.json
+
+# Flamegraph
+flamegraph.svg
+perf.data
+
+# Valgrind
+vgcore.*
+
+# Core dumps
+core
+core.*
+
+# Local testing artifacts
+test_camera_output/
+test_models/
+local_assets/
+
+# Performance monitoring
+*.perf
+*.trace
+*.prof
+
+# IDE project files
+*.cbp
+*.layout
+*.depend
+
+# Qt Creator
+CMakeLists.txt.user*
+
+# CLion
+cmake-build-*/
+
+# Local documentation builds
+target/doc/
+docs/build/
+
+# Temporary video/image files from testing
+*.png
+*.jpg
+*.jpeg
+*.bmp
+*.tiff
+!docs/**/*.png
+!docs/**/*.jpg
+!README_assets/**/*
+
+# Local model downloads
+downloads/
+models_temp/
+
+# Rust incremental compilation
+target/debug/incremental/
+target/release/incremental/
+
+# Cargo registry cache
+.cargo/registry/
+.cargo/git/

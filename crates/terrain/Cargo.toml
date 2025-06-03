@@ -1,0 +1,21 @@
+[package]
+name = "spectremesh-terrain"
+version = "0.1.0"
+edition = "2021"
+authors = ["SpectreMesh Team"]
+description = "Terrain generation and marching cubes for SpectreMesh"
+license = "MIT"
+
+[dependencies]
+spectremesh-core = { path = "../core" }
+
+# Noise generation
+fastnoise-lite = { workspace = true }
+
+# Utilities
+serde = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["test-util"] }
