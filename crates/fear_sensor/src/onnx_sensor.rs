@@ -247,7 +247,7 @@ impl FearSensor for OnnxFearSensor {
             });
         }
 
-        let (sender, receiver) = async_channel::unbounded();
+        let (sender, receiver) = async_channel::bounded(2);
         self.running = true;
 
         // Clone necessary data for the async task
@@ -335,9 +335,16 @@ impl FearSensor for OnnxFearSensor {
                     FearScore::new_uncalibrated(emotion_logits, 0.9)
                 };
 
-                // Send score
-                if sender.send(score).await.is_err() {
-                    break; // Receiver dropped
+                // Send score with back-pressure handling
+                match sender.try_send(score) {
+                    Ok(_) => {},
+                    Err(async_channel::TrySendError::Full(_)) => {
+                        // Channel full, drop oldest frame (back-pressure)
+                        tracing::debug!("Dropped frame due to back-pressure in ONNX sensor");
+                    },
+                    Err(async_channel::TrySendError::Closed(_)) => {
+                        break; // Receiver dropped
+                    }
                 }
 
                 frame_count += 1;

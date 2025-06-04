@@ -1,0 +1,140 @@
+syntax = "proto3";
+
+package spectre.sensor.v1;
+
+// Sensor event stream for real-time fear detection
+service SensorService {
+  // Stream sensor events (calibration progress, scores, faults)
+  rpc StreamEvents(StreamRequest) returns (stream SensorEvent);
+  
+  // Get current sensor status
+  rpc GetStatus(StatusRequest) returns (StatusResponse);
+  
+  // Control calibration
+  rpc ControlCalibration(CalibrationControl) returns (CalibrationResponse);
+}
+
+// Request to start streaming sensor events
+message StreamRequest {
+  // Optional filter for event types
+  repeated EventType event_types = 1;
+}
+
+// Sensor event variants
+message SensorEvent {
+  // Timestamp in microseconds since Unix epoch
+  uint64 timestamp_us = 1;
+  
+  oneof event {
+    CalibrationProgress calibration_progress = 2;
+    Score score = 3;
+    SensorFault sensor_fault = 4;
+  }
+}
+
+// Calibration progress update
+message CalibrationProgress {
+  // Progress percentage [0.0, 1.0]
+  float progress = 1;
+  // Whether calibration is complete
+  bool completed = 2;
+  // Current baseline statistics
+  optional BaselineStats baseline = 3;
+}
+
+// Fear score measurement
+message Score {
+  // Normalized fear value [0.0, 1.0]
+  float normalized_fear = 1;
+  // Raw fear logit from emotion model
+  float raw_fear_logit = 2;
+  // Model confidence [0.0, 1.0]
+  float confidence = 3;
+  // Whether this score is calibrated
+  bool calibrated = 4;
+  // Raw emotion logits (7 classes)
+  repeated float emotion_logits = 5;
+  // Inference latency in microseconds
+  uint64 inference_latency_us = 6;
+}
+
+// Sensor fault/error event
+message SensorFault {
+  // Fault severity level
+  FaultSeverity severity = 1;
+  // Human-readable error message
+  string message = 2;
+  // Error code for programmatic handling
+  string error_code = 3;
+  // Whether the sensor can recover automatically
+  bool recoverable = 4;
+}
+
+// Baseline calibration statistics
+message BaselineStats {
+  // Mean of baseline samples
+  float mean = 1;
+  // Standard deviation of baseline samples
+  float std_dev = 2;
+  // Number of samples collected
+  uint32 sample_count = 3;
+}
+
+// Status request
+message StatusRequest {}
+
+// Current sensor status
+message StatusResponse {
+  // Whether sensor is currently running
+  bool running = 1;
+  // Calibration status
+  CalibrationProgress calibration = 2;
+  // Last known error (if any)
+  optional SensorFault last_error = 3;
+  // Performance metrics
+  PerformanceMetrics metrics = 4;
+}
+
+// Performance metrics
+message PerformanceMetrics {
+  // Current FPS
+  float current_fps = 1;
+  // P95 inference latency in microseconds
+  uint64 p95_inference_latency_us = 2;
+  // Number of dropped frames
+  uint64 dropped_frames = 3;
+  // Calibration drift (change in baseline mean)
+  float calibration_drift = 4;
+}
+
+// Calibration control
+message CalibrationControl {
+  oneof action {
+    bool start_calibration = 1;
+    bool freeze_calibration = 2;
+    bool reset_calibration = 3;
+  }
+}
+
+// Calibration control response
+message CalibrationResponse {
+  bool success = 1;
+  optional string error_message = 2;
+}
+
+// Event type filter
+enum EventType {
+  EVENT_TYPE_UNSPECIFIED = 0;
+  EVENT_TYPE_CALIBRATION_PROGRESS = 1;
+  EVENT_TYPE_SCORE = 2;
+  EVENT_TYPE_SENSOR_FAULT = 3;
+}
+
+// Fault severity levels
+enum FaultSeverity {
+  FAULT_SEVERITY_UNSPECIFIED = 0;
+  FAULT_SEVERITY_INFO = 1;
+  FAULT_SEVERITY_WARNING = 2;
+  FAULT_SEVERITY_ERROR = 3;
+  FAULT_SEVERITY_CRITICAL = 4;
+}

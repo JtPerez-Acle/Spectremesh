@@ -19,6 +19,7 @@ path = "src/bin/spectreprobe.rs"
 spectremesh-core = { path = "../core" }
 spectremesh-fear-sensor = { path = "../fear_sensor" }
 spectremesh-terrain = { path = "../terrain" }
+spectre-sensor = { path = "../../spectre_sensor" }
 
 # Bevy with required features
 bevy = { workspace = true, features = [
