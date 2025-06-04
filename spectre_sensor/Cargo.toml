@@ -1,0 +1,62 @@
+[package]
+name = "spectre-sensor"
+version = "0.2.0"
+edition = "2021"
+authors = ["SpectreMesh Team"]
+description = "High-performance emotion detection sensor with gRPC streaming"
+license = "MIT"
+
+[[bin]]
+name = "sensor_fuzzer"
+path = "src/bin/sensor_fuzzer.rs"
+
+[dependencies]
+# Workspace crates
+spectremesh-core = { path = "../crates/core" }
+
+# Computer vision
+opencv = { workspace = true, features = ["imgproc", "objdetect", "videoio"] }
+
+# ONNX runtime with optimizations
+ort = { workspace = true }
+
+# Math and arrays
+ndarray = { workspace = true }
+
+# Async runtime
+tokio = { workspace = true, features = ["full"] }
+tokio-stream = { workspace = true }
+futures = "0.3"
+async-channel = { workspace = true }
+async-trait = { workspace = true }
+
+# gRPC and protobuf
+tonic = { workspace = true }
+prost = { workspace = true }
+prost-types = { workspace = true }
+
+# Metrics and monitoring
+prometheus = { workspace = true }
+axum = { workspace = true }
+tower = { workspace = true }
+
+# System utilities
+num_cpus = { workspace = true }
+
+# Utilities
+serde = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+tracing-subscriber = "0.3"
+clap = { version = "4.0", features = ["derive"] }
+rand = "0.8"
+
+[build-dependencies]
+tonic-build = "0.12"
+
+[features]
+default = []
+mock = []  # Mock implementation for testing
+
+[dev-dependencies]
+tokio-test = "0.4"

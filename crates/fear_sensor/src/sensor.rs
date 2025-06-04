@@ -43,7 +43,7 @@ mod tests {
         }
 
         async fn start(&mut self) -> Result<async_channel::Receiver<FearScore>, FearError> {
-            let (sender, receiver) = async_channel::unbounded();
+            let (sender, receiver) = async_channel::bounded(2);
             
             // Send a test fear score
             let test_score = FearScore::new_calibrated(

@@ -1,9 +1,10 @@
 [workspace]
 members = [
     "crates/core",
-    "crates/fear_sensor", 
+    "crates/fear_sensor",
     "crates/terrain",
     "crates/game",
+    "spectre_sensor",
 ]
 resolver = "2"
 
@@ -11,6 +12,7 @@ resolver = "2"
 # Core dependencies with exact versions
 bevy = { version = "0.16", default-features = false }
 tokio = { version = "1.0", features = ["rt-multi-thread", "macros", "time"] }
+tokio-stream = "0.1"
 async-channel = "2.0"
 serde = { version = "1.0", features = ["derive"] }
 thiserror = "1.0"
@@ -27,6 +29,19 @@ fastnoise-lite = "1.0"
 # Configuration and serialization
 toml = "0.8"
 dirs = "5.0"
+
+# gRPC and protobuf
+tonic = "0.12"
+prost = "0.13"
+prost-types = "0.13"
+
+# Metrics and monitoring
+prometheus = "0.13"
+axum = "0.7"
+tower = "0.4"
+
+# System utilities
+num_cpus = "1.16"
 
 # Development dependencies
 async-trait = "0.1"
