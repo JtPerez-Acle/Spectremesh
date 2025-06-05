@@ -17,7 +17,6 @@ path = "src/bin/spectreprobe.rs"
 [dependencies]
 # Workspace crates
 spectremesh-core = { path = "../core" }
-spectremesh-fear-sensor = { path = "../fear_sensor" }
 spectremesh-terrain = { path = "../terrain" }
 spectre-sensor = { path = "../../spectre_sensor" }
 
@@ -58,7 +57,7 @@ anyhow = "1.0"
 
 [features]
 default = []
-mock-fear = ["spectremesh-fear-sensor/mock"]  # For testing without camera
+mock-fear = ["spectre-sensor/mock"]  # For testing without camera (now uses modern mock)
 debug-overlay = []  # Always show debug UI
 
 [dev-dependencies]

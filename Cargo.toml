@@ -1,7 +1,6 @@
 [workspace]
 members = [
     "crates/core",
-    "crates/fear_sensor",
     "crates/terrain",
     "crates/game",
     "spectre_sensor",

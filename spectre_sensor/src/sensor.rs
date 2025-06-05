@@ -178,13 +178,14 @@ impl EmotionSensor {
         config: SensorConfig,
         state: Arc<Mutex<SensorState>>,
     ) -> Result<(), SensorError> {
-        // Initialize camera
-        let mut camera = VideoCapture::new(config.camera_id as i32, CAP_ANY)
-            .map_err(|e| SensorError::CameraInit(e.to_string()))?;
-        
-        if !camera.is_opened().unwrap_or(false) {
-            return Err(SensorError::CameraInit("Failed to open camera".to_string()));
+        // Check camera permissions first
+        if let Err(e) = crate::permissions::check_camera_permissions().await {
+            tracing::warn!("Camera permission check failed: {}", e);
+            crate::permissions::provide_camera_troubleshooting_guidance();
         }
+
+        // Initialize camera with enhanced error reporting
+        let mut camera = Self::initialize_camera_with_backend_detection(config.camera_id)?;
 
         let frame_duration = Duration::from_secs_f32(1.0 / config.target_fps);
         let mut frame_count = 0u64;
@@ -423,6 +424,61 @@ impl EmotionSensor {
             calibrator.reset();
         }
         Ok(())
+    }
+
+    /// Initialize camera with enhanced error reporting and backend detection
+    fn initialize_camera_with_backend_detection(camera_id: u32) -> Result<VideoCapture, SensorError> {
+        let camera = VideoCapture::new(camera_id as i32, CAP_ANY)
+            .map_err(|e| SensorError::CameraInit(format!("Failed to create camera {}: {}", camera_id, e)))?;
+
+        if !camera.is_opened().unwrap_or(false) {
+            return Err(SensorError::CameraInit(format!(
+                "Camera {} failed to open. Available backends: {}",
+                camera_id,
+                Self::get_available_backends()
+            )));
+        }
+
+        // Log camera backend information
+        let backend_name = Self::get_camera_backend_name(&camera);
+        tracing::info!("Camera {} initialized with backend: {}", camera_id, backend_name);
+
+        // Validate camera properties
+        let width = camera.get(opencv::videoio::CAP_PROP_FRAME_WIDTH).unwrap_or(0.0);
+        let height = camera.get(opencv::videoio::CAP_PROP_FRAME_HEIGHT).unwrap_or(0.0);
+        tracing::info!("Camera resolution: {}x{}", width, height);
+
+        Ok(camera)
+    }
+
+    /// Get camera backend name
+    fn get_camera_backend_name(camera: &VideoCapture) -> String {
+        // Try to get backend name from OpenCV
+        match camera.get_backend_name() {
+            Ok(name) => name,
+            Err(_) => {
+                #[cfg(target_os = "windows")]
+                return "DirectShow".to_string();
+                #[cfg(target_os = "macos")]
+                return "AVFoundation".to_string();
+                #[cfg(target_os = "linux")]
+                return "V4L2".to_string();
+                #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
+                return "Unknown".to_string();
+            }
+        }
+    }
+
+    /// Get available camera backends for the platform
+    fn get_available_backends() -> String {
+        #[cfg(target_os = "windows")]
+        return "DirectShow, MSMF".to_string();
+        #[cfg(target_os = "macos")]
+        return "AVFoundation".to_string();
+        #[cfg(target_os = "linux")]
+        return "V4L2, GStreamer".to_string();
+        #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
+        return "Platform-specific".to_string();
     }
 }
 

@@ -34,7 +34,7 @@ impl Default for SensorConfig {
             target_fps: 30.0,
             channel_buffer_size: 2,
             metrics_port: 9090,
-            grpc_socket_path: "/tmp/spectre_sensor.sock".to_string(),
+            grpc_socket_path: Self::default_socket_path(),
         }
     }
 }
@@ -82,6 +82,28 @@ impl SensorConfig {
             .and_then(|s| s.parse().ok())
             .unwrap_or_else(num_cpus::get)
             .max(1) // Ensure at least 1 thread
+    }
+
+    /// Get platform-appropriate default socket path
+    fn default_socket_path() -> String {
+        #[cfg(target_os = "windows")]
+        {
+            // Use named pipes on Windows
+            r"\\.\pipe\spectre_sensor".to_string()
+        }
+        #[cfg(target_os = "macos")]
+        {
+            // Use user-specific temp directory on macOS
+            format!("/tmp/spectre_sensor_{}.sock", std::process::id())
+        }
+        #[cfg(target_os = "linux")]
+        {
+            "/tmp/spectre_sensor.sock".to_string()
+        }
+        #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
+        {
+            "/tmp/spectre_sensor.sock".to_string()
+        }
     }
     
     /// Set emotion model path (for --model-path override)
@@ -162,7 +184,7 @@ mod tests {
     #[test]
     fn test_default_config() {
         let config = SensorConfig::default();
-        
+
         assert!(config.emotion_model_path.is_none());
         assert!(config.onnx_threads > 0);
         assert!(!config.freeze_calibration);
@@ -170,6 +192,18 @@ mod tests {
         assert_eq!(config.target_fps, 30.0);
         assert_eq!(config.channel_buffer_size, 2);
         assert_eq!(config.metrics_port, 9090);
+
+        // Test platform-specific socket paths
+        #[cfg(target_os = "windows")]
+        assert!(config.grpc_socket_path.contains(r"\\.\pipe\"));
+
+        #[cfg(target_os = "macos")]
+        {
+            assert!(config.grpc_socket_path.starts_with("/tmp/"));
+            assert!(config.grpc_socket_path.contains(&std::process::id().to_string()));
+        }
+
+        #[cfg(target_os = "linux")]
         assert_eq!(config.grpc_socket_path, "/tmp/spectre_sensor.sock");
     }
 
