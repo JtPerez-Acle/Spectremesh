@@ -16,6 +16,7 @@ pub mod grpc_client;
 pub mod metrics;
 pub mod config;
 pub mod compat;
+pub mod permissions;
 
 // Re-export main types
 pub use types::{FearFrame, FearBucket, PerformanceMetrics};

@@ -53,8 +53,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         test_fear_detection_yunet().await?;
     }
 
-    // Test 3: Calibration system
-    println!("\n📊 Test 3: Fear Calibration System");
+    // Test 3: Platform-specific configuration
+    println!("\n🌐 Test 3: Cross-Platform Configuration");
+    test_platform_specific_configuration().await?;
+
+    // Test 4: Calibration system
+    println!("\n📊 Test 4: Fear Calibration System");
     if test_both {
         println!("  Testing both Mock and YuNet implementations...");
         test_calibration_system_mock().await?;
@@ -71,6 +75,17 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     } else {
         println!("Note: Successfully tested real hardware integration!");
     }
+
+    // Display platform-specific information
+    println!("\n🌐 Platform Information:");
+    #[cfg(target_os = "windows")]
+    println!("  Platform: Windows (DirectShow camera backend)");
+    #[cfg(target_os = "macos")]
+    println!("  Platform: macOS (AVFoundation camera backend)");
+    #[cfg(target_os = "linux")]
+    println!("  Platform: Linux (V4L2 camera backend)");
+    #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
+    println!("  Platform: Other (generic camera backend)");
 
     Ok(())
 }
@@ -109,6 +124,28 @@ async fn test_camera_enumeration_yunet() -> Result<(), Box<dyn std::error::Error
             for camera in cameras {
                 println!("      - ID: {}, Name: '{}', Resolution: {}x{}",
                     camera.id, camera.name, camera.resolution.0, camera.resolution.1);
+
+                // Validate this is not a mock camera
+                if camera.name.contains("Default Camera") {
+                    println!("    ❌ WARNING: Found mock 'Default Camera' - cross-platform fix needed!");
+                    return Err("Mock camera detected in real enumeration".into());
+                }
+
+                // Show platform-specific backend detection
+                #[cfg(target_os = "windows")]
+                if camera.name.contains("DirectShow") {
+                    println!("      ✅ Windows DirectShow backend detected");
+                }
+
+                #[cfg(target_os = "macos")]
+                if camera.name.contains("AVFoundation") {
+                    println!("      ✅ macOS AVFoundation backend detected");
+                }
+
+                #[cfg(target_os = "linux")]
+                if camera.name.contains("V4L2") {
+                    println!("      ✅ Linux V4L2 backend detected");
+                }
             }
         }
         Err(CameraError::NoCamerasAvailable) => {
@@ -121,6 +158,59 @@ async fn test_camera_enumeration_yunet() -> Result<(), Box<dyn std::error::Error
         }
     }
 
+    Ok(())
+}
+
+async fn test_platform_specific_configuration() -> Result<(), Box<dyn std::error::Error>> {
+    use spectre_sensor::config::SensorConfig;
+
+    println!("  🌐 Testing Platform-Specific Configuration:");
+    let config = SensorConfig::default();
+
+    println!("    Socket path: {}", config.grpc_socket_path);
+
+    // Validate platform-specific paths
+    #[cfg(target_os = "windows")]
+    {
+        if config.grpc_socket_path.contains(r"\\.\pipe\") {
+            println!("    ✅ Windows named pipe path detected");
+        } else {
+            println!("    ❌ Windows should use named pipes");
+            return Err("Windows path configuration incorrect".into());
+        }
+    }
+
+    #[cfg(target_os = "macos")]
+    {
+        if config.grpc_socket_path.starts_with("/tmp/") &&
+           config.grpc_socket_path.contains(&std::process::id().to_string()) {
+            println!("    ✅ macOS process-specific temp path detected");
+        } else {
+            println!("    ❌ macOS should use process-specific temp paths");
+            return Err("macOS path configuration incorrect".into());
+        }
+    }
+
+    #[cfg(target_os = "linux")]
+    {
+        if config.grpc_socket_path == "/tmp/spectre_sensor.sock" {
+            println!("    ✅ Linux standard temp path detected");
+        } else {
+            println!("    ❌ Linux should use standard temp path");
+            return Err("Linux path configuration incorrect".into());
+        }
+    }
+
+    // Test configuration validation
+    match config.validate() {
+        Ok(_) => println!("    ✅ Configuration validation passed"),
+        Err(e) => {
+            println!("    ❌ Configuration validation failed: {}", e);
+            return Err(e.into());
+        }
+    }
+
+    println!("    ✅ Platform-specific configuration working correctly");
     Ok(())
 }
 
@@ -432,5 +522,10 @@ mod tests {
     #[tokio::test]
     async fn test_spectreprobe_calibration_yunet() {
         assert!(test_calibration_system_yunet().await.is_ok());
+    }
+
+    #[tokio::test]
+    async fn test_spectreprobe_platform_config() {
+        assert!(test_platform_specific_configuration().await.is_ok());
     }
 }

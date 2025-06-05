@@ -14,6 +14,10 @@ use crate::{
 use async_channel::Receiver;
 use std::time::Duration;
 use std::sync::{Arc, Mutex};
+use opencv::{
+    videoio::{VideoCapture, CAP_ANY},
+    prelude::{VideoCaptureTraitConst, VideoCaptureTrait},
+};
 
 /// Legacy FearSensor trait for compatibility
 #[async_trait]
@@ -119,12 +123,8 @@ impl FearSensor for YuNetFearSensor {
     }
 
     async fn enumerate_cameras(&self) -> Result<Vec<CameraDevice>, CameraError> {
-        // For now, return a simple camera enumeration
-        // The EmotionSensor doesn't have a direct camera enumeration method
-        // so we'll provide a basic implementation
-        Ok(vec![
-            CameraDevice::new(0, "Default Camera".to_string(), (640, 480)),
-        ])
+        // Implement real camera enumeration using OpenCV
+        enumerate_cameras_opencv().await
     }
 
     fn is_calibrated(&self) -> bool {
@@ -138,6 +138,57 @@ impl FearSensor for YuNetFearSensor {
         let state = self.emotion_sensor.get_state();
         state.calibration_progress
     }
+
+}
+
+/// Real camera enumeration using OpenCV
+async fn enumerate_cameras_opencv() -> Result<Vec<CameraDevice>, CameraError> {
+    let mut cameras = Vec::new();
+
+    // Try to enumerate cameras 0-9 (reasonable range for most systems)
+    for id in 0..10 {
+        match VideoCapture::new(id, CAP_ANY) {
+            Ok(mut camera) => {
+                if camera.is_opened().unwrap_or(false) {
+                    // Get camera properties
+                    let width = camera.get(opencv::videoio::CAP_PROP_FRAME_WIDTH)
+                        .unwrap_or(640.0) as u32;
+                    let height = camera.get(opencv::videoio::CAP_PROP_FRAME_HEIGHT)
+                        .unwrap_or(480.0) as u32;
+
+                    // Platform-specific camera naming
+                    let name = get_camera_name(id);
+
+                    cameras.push(CameraDevice::new(id as u32, name, (width, height)));
+
+                    // Clean up camera handle
+                    let _ = camera.release();
+                }
+            },
+            Err(_) => continue, // Camera not available
+        }
+    }
+
+    if cameras.is_empty() {
+        Err(CameraError::NoCamerasAvailable)
+    } else {
+        Ok(cameras)
+    }
+}
+
+/// Get platform-specific camera name
+fn get_camera_name(id: i32) -> String {
+    #[cfg(target_os = "windows")]
+    return format!("DirectShow Camera {}", id);
+
+    #[cfg(target_os = "macos")]
+    return format!("AVFoundation Camera {}", id);
+
+    #[cfg(target_os = "linux")]
+    return format!("V4L2 Camera {}", id);
+
+    #[cfg(not(any(target_os = "windows", target_os = "macos", target_os = "linux")))]
+    return format!("Camera {}", id);
 }
 
 /// Convert FearConfig to SensorConfig
@@ -150,7 +201,7 @@ fn convert_fear_config_to_sensor_config(fear_config: &FearConfig) -> SensorConfi
         target_fps: fear_config.camera.fps as f32,
         channel_buffer_size: 2,
         metrics_port: 9090,
-        grpc_socket_path: "/tmp/spectre_sensor.sock".to_string(),
+        grpc_socket_path: SensorConfig::default().grpc_socket_path, // Use platform-specific default
     }
 }
 
