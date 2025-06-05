@@ -1,0 +1,24 @@
+[package]
+name = "spectremesh-core"
+version = "0.1.0"
+edition = "2021"
+authors = ["SpectreMesh Team"]
+description = "Core types and utilities for SpectreMesh"
+license = "MIT"
+
+[dependencies]
+# Serialization
+serde = { workspace = true }
+toml = { workspace = true }
+
+# Error handling
+thiserror = { workspace = true }
+
+# Async
+async-channel = { workspace = true }
+
+# Utilities
+tracing = { workspace = true }
+
+[dev-dependencies]
+tokio = { workspace = true, features = ["test-util"] }

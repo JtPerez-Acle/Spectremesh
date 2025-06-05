@@ -248,10 +248,6 @@ perf.data
 # Valgrind
 vgcore.*
 
-# Core dumps
-core
-core.*
-
 # Local testing artifacts
 test_camera_output/
 test_models/
