@@ -78,25 +78,32 @@ let sensor = MockFearSensor::sine_pattern(0.5, 0.3, 2.0); // center, amplitude, 
 let sensor = MockFearSensor::new(vec![0.1, 0.3, 0.5, 0.7, 0.9]);
 ```
 
-### `OnnxFearSensor` (Production)
+### `YuNetFearSensor` (Production)
 ```rust
-// Real hardware sensor
-let sensor = OnnxFearSensor::new();
+// Real hardware sensor with modern YuNet CNN face detection
+let sensor = YuNetFearSensor::new();
 
-// Requires model files:
-// - assets/models/face_emotion.onnx
-// - assets/models/haarcascade_frontalface_alt.xml (or system path)
+// Features:
+// - Embedded YuNet face detection model (345KB)
+// - No external file dependencies for face detection
+// - Modern CNN architecture (2023) vs legacy Haar cascades (2001)
+// - Superior accuracy and performance
 ```
 
 ## Usage Patterns
 
 ### Basic Usage
 ```rust
-use spectremesh_fear_sensor::{FearSensor, MockFearSensor, FearConfig};
+use spectre_sensor::compat::{FearSensor, MockFearSensor, YuNetFearSensor};
+use spectremesh_core::FearConfig;
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
+    // For development (no hardware needed)
     let mut sensor = MockFearSensor::step_pattern();
+    // For production (real YuNet CNN face detection)
+    // let mut sensor = YuNetFearSensor::new();
+
     let config = FearConfig::default();
     
     // Initialize
@@ -124,7 +131,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 ### Bevy Integration Pattern
 ```rust
 use bevy::prelude::*;
-use spectremesh_fear_sensor::{FearSensor, MockFearSensor, FearScore};
+use spectre_sensor::compat::{FearSensor, MockFearSensor};
+use spectremesh_core::FearScore;
 
 #[derive(Resource)]
 struct FearState {
@@ -245,36 +253,34 @@ cargo run -p spectremesh --bin spectreprobe -- --test-both
 
 ### Memory Usage
 - **Mock Sensor**: Minimal (pattern array)
-- **Real Sensor**: ~100MB (OpenCV + ONNX Runtime)
-- **Model Files**: ~5MB (emotion model + face detector)
+- **Real Sensor**: ~100MB (ONNX Runtime 2.0 + embedded models)
+- **Model Files**: ~350KB (embedded YuNet + emotion model)
 
 ## Feature Flags
 
 ### Cargo Features
 ```toml
-# Default: Real ONNX implementation
-spectremesh-fear-sensor = { path = "../fear_sensor" }
+# Modern YuNet CNN implementation
+spectre-sensor = { path = "../../spectre_sensor" }
 
 # Mock implementation for testing
-spectremesh-fear-sensor = { path = "../fear_sensor", features = ["mock"] }
+spectre-sensor = { path = "../../spectre_sensor", features = ["mock"] }
 ```
 
 ### Type Aliases
 ```rust
-// Automatically selects implementation based on features
-use spectremesh_fear_sensor::DefaultFearSensor;
+// Use compatibility layer for seamless migration
+use spectre_sensor::compat::{FearSensor, MockFearSensor, YuNetFearSensor};
 
-#[cfg(feature = "mock")]
-type DefaultFearSensor = MockFearSensor;
-
-#[cfg(not(feature = "mock"))]
-type DefaultFearSensor = OnnxFearSensor;
+// Choose implementation based on needs
+type DefaultFearSensor = MockFearSensor;     // For development
+type ProductionSensor = YuNetFearSensor;     // For production
 ```
 
 ## Integration Checklist
 
 ### For M0.5 Development
-- [ ] Add `spectremesh-fear-sensor` dependency to game crate
+- [ ] Add `spectre-sensor` dependency to game crate
 - [ ] Use `MockFearSensor` for initial development
 - [ ] Implement Bevy resource for fear state
 - [ ] Create system to poll fear scores
@@ -283,9 +289,9 @@ type DefaultFearSensor = OnnxFearSensor;
 - [ ] Test with `spectreprobe` utility
 
 ### For M1 Production
-- [ ] Switch to `OnnxFearSensor` for real camera input
+- [ ] Switch to `YuNetFearSensor` for real camera input
 - [ ] Handle calibration period in UI
 - [ ] Add camera permission handling
-- [ ] Bundle model files with application
+- [ ] Models are embedded (no external files needed)
 - [ ] Test end-to-end pipeline
 - [ ] Performance optimization and profiling

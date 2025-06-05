@@ -105,13 +105,19 @@ Timer → Pattern Generator → Fear Score → Calibration → Normalized Fear
 ```
 crates/
 ├── core/           # Shared types (FearScore, errors, config)
-├── fear_sensor/    # ✅ COMPLETE - Fear detection implementations
-│   ├── onnx_sensor.rs    # Real OpenCV + ONNX implementation
-│   ├── mock_sensor.rs    # Development/testing implementation  
-│   ├── calibration.rs    # Z-score normalization mathematics
-│   └── sensor.rs         # Unified trait interface
+├── terrain/        # Terrain generation and modification
 └── game/           # 🚧 NEXT - Bevy application (M0.5 target)
     └── bin/spectreprobe.rs  # Hardware validation utility
+
+spectre_sensor/     # ✅ COMPLETE - Modern YuNet CNN fear detection
+├── src/
+│   ├── sensor.rs         # EmotionSensor with YuNet face detection
+│   ├── yunet.rs          # Modern CNN face detection (embedded model)
+│   ├── calibrator.rs     # Adaptive calibration with EMA updates
+│   ├── compat.rs         # Legacy API compatibility layer
+│   └── types.rs          # FearFrame and performance metrics
+└── models/
+    └── face_detection_yunet.onnx  # Embedded 345KB YuNet model
 ```
 
 ## Fear Detection Technology
@@ -141,9 +147,9 @@ Our real-time emotion processing follows this validated pipeline:
    ├── AVFoundation backend (macOS)
    └── DirectShow backend (Windows)
 
-2. Face Detection (Haar Cascade)
-   ├── Detect faces in frame
-   ├── Extract largest face region
+2. Face Detection (YuNet CNN)
+   ├── Modern multi-scale CNN face detection
+   ├── Extract largest face region with confidence scoring
    └── Handle no-face scenarios gracefully
 
 3. Image Preprocessing
@@ -221,11 +227,11 @@ clamped_fear = clamp(normalized_fear, 0.0, 1.0)
 ```
 Processing Pipeline:
 ├── Camera Capture: ~1ms (hardware dependent)
-├── Face Detection: ~5-15ms (Haar cascade)
+├── Face Detection: ~8-15ms (YuNet CNN multi-scale)
 ├── Preprocessing: ~1-2ms (resize, normalize)
 ├── ONNX Inference: ~3-8ms (target <10ms)
 ├── Calibration: ~0.1ms (mathematical operations)
-└── Total Latency: ~10-26ms per frame
+└── Total Latency: ~13-26ms per frame
 
 Throughput:
 ├── Target: 30 FPS (33ms per frame)
@@ -233,10 +239,10 @@ Throughput:
 └── Calibration: 30 seconds for baseline
 
 Resource Usage:
-├── Memory: ~100MB (OpenCV + ONNX Runtime)
+├── Memory: ~100MB (ONNX Runtime 2.0 + embedded models)
 ├── CPU: 15-25% single core (during processing)
 ├── GPU: Optional acceleration (CUDA/TensorRT)
-└── Model Size: ~5MB (emotion model + face detector)
+└── Model Size: ~350KB (embedded YuNet + emotion model)
 ```
 
 **Platform Performance**
@@ -293,9 +299,8 @@ cargo test
 # Create model directory
 mkdir -p assets/models
 
-# Download required files (see assets/models/README.md for details)
-# - FaceONNX emotion recognition model (face_emotion.onnx)
-# - Haar cascade face detector (haarcascade_frontalface_alt.xml)
+# Note: YuNet face detection model is now embedded in the binary
+# Only emotion recognition model may be needed for full functionality
 
 # Test with real camera
 cargo run -p spectremesh --bin spectreprobe
@@ -305,10 +310,10 @@ cargo run -p spectremesh --bin spectreprobe
 
 ### Automated Testing
 ```bash
-# Unit tests (18 tests)
-cargo test -p spectremesh-fear-sensor
+# Unit tests (35 tests + 6 compatibility tests)
+cargo test -p spectre-sensor
 
-# Integration tests (6 tests)  
+# Integration tests (6 tests)
 cargo test -p spectremesh --bin spectreprobe
 
 # All tests
@@ -332,9 +337,13 @@ cargo run -p spectremesh --bin spectreprobe -- --test-both
 ### For M0.5 Development (Visual Integration)
 ```rust
 // Fear detection is ready - use it like this:
-use spectremesh_fear_sensor::{FearSensor, MockFearSensor};
+use spectre_sensor::compat::{FearSensor, MockFearSensor, YuNetFearSensor};
 
+// For development (no hardware needed)
 let mut sensor = MockFearSensor::step_pattern();
+// For production (real YuNet CNN face detection)
+// let mut sensor = YuNetFearSensor::new();
+
 sensor.initialize(&config).await?;
 let receiver = sensor.start().await?;
 
@@ -373,7 +382,7 @@ We need developers to implement **visual proof of concept** using Bevy 0.16:
 4. Start with mock fear sensor for visual development
 
 ### Development Guidelines
-- **Don't modify `crates/fear_sensor/`** - it's complete and working
+- **Don't modify `spectre_sensor/`** - it's complete and working with modern YuNet CNN
 - **Use mock implementation** for development (no hardware needed)
 - **Focus on Bevy rendering** and visual feedback systems
 - **Test frequently** with spectreprobe utility
@@ -389,9 +398,10 @@ We need developers to implement **visual proof of concept** using Bevy 0.16:
 ## Technical Specifications
 
 ### Performance
-- **Fear Detection**: 33.8 FPS real-time processing (ONNX Runtime 2.0)
-- **ONNX Inference**: 47.12ms P95 latency with YuNet multi-scale processing
-- **Memory Usage**: ~100MB (OpenCV + ONNX Runtime 2.0)
+- **Fear Detection**: 33.8 FPS real-time processing (YuNet CNN + ONNX Runtime 2.0)
+- **YuNet Face Detection**: 8-15ms with embedded 345KB model
+- **ONNX Inference**: 47.12ms P95 latency with multi-scale processing
+- **Memory Usage**: ~100MB (ONNX Runtime 2.0 + embedded models)
 - **Calibration**: 30-second baseline establishment
 
 ### Supported Platforms
@@ -403,7 +413,7 @@ We need developers to implement **visual proof of concept** using Bevy 0.16:
 - **Bevy 0.16**: Game engine and rendering
 - **OpenCV 0.94**: Camera capture and image processing
 - **ONNX Runtime 2.0**: Modern inference engine with enhanced performance
-- **YuNet**: Multi-scale face detection with embedded 232KB model
+- **YuNet**: Multi-scale CNN face detection with embedded 345KB model
 - **tokio**: Async runtime for sensor processing
 
 ## License
