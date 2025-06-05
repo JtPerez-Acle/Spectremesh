@@ -63,9 +63,7 @@ impl OnnxFearSensor {
                 message: format!("Failed to set intra threads: {}", e)
             })?
             .commit_from_file(model_path)
-            .map_err(|_e| FearError::ModelNotFound {
-                path: model_path.to_string()
-            })?;
+            .map_err(|_e| FearError::model_not_found(format!("Model not found: {}", model_path)))?;
 
         Ok(session)
     }
@@ -165,9 +163,7 @@ impl OnnxFearSensor {
 
         // Reshape to [1, 1, 48, 48] (batch, channels, height, width)
         let array = Array4::from_shape_vec((1, 1, 48, 48), normalized)
-            .map_err(|e| FearError::InvalidLogits {
-                reason: format!("Array reshape failed: {}", e)
-            })?;
+            .map_err(|e| FearError::invalid_logits(format!("Array reshape failed: {}", e)))?;
 
         Ok(array)
     }
@@ -198,9 +194,7 @@ impl OnnxFearSensor {
             })?;
 
         if logits_slice.len() != 7 {
-            return Err(FearError::InvalidLogits {
-                reason: format!("Expected 7 emotion classes, got {}", logits_slice.len())
-            });
+            return Err(FearError::invalid_logits(format!("Expected 7 emotion classes, got {}", logits_slice.len())));
         }
 
         let mut result = [0.0; 7];
@@ -226,7 +220,7 @@ impl FearSensor for OnnxFearSensor {
 
         // Initialize calibrator
         self.calibrator = Some(FearCalibrator::new(
-            config.calibration_duration,
+            config.calibration_duration.as_secs_f32(),
             config.camera.fps as f32,
         ));
 
@@ -332,7 +326,7 @@ impl FearSensor for OnnxFearSensor {
                     let normalized_fear = calibrator.normalize_fear(fear_logit);
                     FearScore::new_calibrated(normalized_fear, emotion_logits, 0.9)
                 } else {
-                    FearScore::new_uncalibrated(emotion_logits, 0.9)
+                    FearScore::new_uncalibrated(fear_logit, emotion_logits, 0.9)
                 };
 
                 // Send score with back-pressure handling
@@ -404,7 +398,7 @@ impl FearSensor for OnnxFearSensor {
         }
 
         if cameras.is_empty() {
-            Err(CameraError::NoCamerasFound)
+            Err(CameraError::NoCamerasAvailable)
         } else {
             Ok(cameras)
         }
@@ -448,8 +442,8 @@ mod tests {
         let result = sensor.initialize(&config).await;
         assert!(result.is_err());
 
-        if let Err(FearError::ModelNotFound { path }) = result {
-            assert_eq!(path, "nonexistent_model.onnx");
+        if let Err(FearError::ModelNotFound { message }) = result {
+            assert!(message.contains("nonexistent_model.onnx"));
         } else {
             panic!("Expected ModelNotFound error");
         }
@@ -469,7 +463,7 @@ mod tests {
                         camera.id, camera.name, camera.resolution.0, camera.resolution.1);
                 }
             }
-            Err(CameraError::NoCamerasFound) => {
+            Err(CameraError::NoCamerasAvailable) => {
                 println!("No cameras found (expected in CI environment)");
             }
             Err(e) => {
@@ -502,8 +496,8 @@ mod tests {
         let result = OnnxFearSensor::load_model("invalid_path.onnx");
         assert!(result.is_err());
 
-        if let Err(FearError::ModelNotFound { path }) = result {
-            assert_eq!(path, "invalid_path.onnx");
+        if let Err(FearError::ModelNotFound { message }) = result {
+            assert!(message.contains("invalid_path.onnx"));
         } else {
             panic!("Expected ModelNotFound error");
         }

@@ -1,5 +1,5 @@
 //! High-performance emotion detection sensor with gRPC streaming
-//! 
+//!
 //! This crate provides the next-generation fear detection pipeline with:
 //! - YuNet face detection (replacing Haar cascades)
 //! - Optimized ONNX Runtime with configurable threading
@@ -15,12 +15,16 @@ pub mod grpc_server;
 pub mod grpc_client;
 pub mod metrics;
 pub mod config;
+pub mod compat;
 
 // Re-export main types
 pub use types::{FearFrame, FearBucket, PerformanceMetrics};
 pub use sensor::{EmotionSensor, SensorError};
 pub use calibrator::{AdaptiveCalibrator, CalibrationError, BaselineStats};
 pub use config::SensorConfig;
+
+// Re-export compatibility layer for legacy API
+pub use compat::{YuNetFearSensor, MockFearSensor};
 
 // gRPC generated code
 pub mod proto {

@@ -1,10 +1,12 @@
 //! SpectreMesh Camera Probe Utility
-//! 
-//! Tests camera permissions and ONNX inference capabilities before running the main game.
+//!
+//! Tests camera permissions and YuNet face detection capabilities before running the main game.
 //! This is part of Milestone M0 (Sensor-Only) deliverables.
+//!
+//! Now uses modern YuNet CNN-based face detection instead of legacy Haar cascades.
 
 use spectremesh_core::{FearConfig, CameraError};
-use spectremesh_fear_sensor::{FearSensor, MockFearSensor, OnnxFearSensor};
+use spectre_sensor::compat::{FearSensor, MockFearSensor, YuNetFearSensor};
 use std::time::Duration;
 use tokio::time::timeout;
 
@@ -30,37 +32,37 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     // Test 1: Camera enumeration
     println!("\n🔍 Test 1: Camera Enumeration");
     if test_both {
-        println!("  Testing both Mock and ONNX implementations...");
+        println!("  Testing both Mock and YuNet implementations...");
         test_camera_enumeration_mock().await?;
-        test_camera_enumeration_onnx().await?;
+        test_camera_enumeration_yunet().await?;
     } else if use_mock {
         test_camera_enumeration_mock().await?;
     } else {
-        test_camera_enumeration_onnx().await?;
+        test_camera_enumeration_yunet().await?;
     }
 
     // Test 2: Fear detection pipeline
     println!("\n🧠 Test 2: Fear Detection Pipeline");
     if test_both {
-        println!("  Testing both Mock and ONNX implementations...");
+        println!("  Testing both Mock and YuNet implementations...");
         test_fear_detection_mock().await?;
-        test_fear_detection_onnx().await?;
+        test_fear_detection_yunet().await?;
     } else if use_mock {
         test_fear_detection_mock().await?;
     } else {
-        test_fear_detection_onnx().await?;
+        test_fear_detection_yunet().await?;
     }
 
     // Test 3: Calibration system
     println!("\n📊 Test 3: Fear Calibration System");
     if test_both {
-        println!("  Testing both Mock and ONNX implementations...");
+        println!("  Testing both Mock and YuNet implementations...");
         test_calibration_system_mock().await?;
-        test_calibration_system_onnx().await?;
+        test_calibration_system_yunet().await?;
     } else if use_mock {
         test_calibration_system_mock().await?;
     } else {
-        test_calibration_system_onnx().await?;
+        test_calibration_system_yunet().await?;
     }
 
     println!("\n✅ All tests passed! SpectreMesh is ready to run.");
@@ -97,9 +99,9 @@ async fn test_camera_enumeration_mock() -> Result<(), Box<dyn std::error::Error>
     Ok(())
 }
 
-async fn test_camera_enumeration_onnx() -> Result<(), Box<dyn std::error::Error>> {
-    println!("  🎯 Testing ONNX Sensor Camera Enumeration:");
-    let sensor = OnnxFearSensor::new();
+async fn test_camera_enumeration_yunet() -> Result<(), Box<dyn std::error::Error>> {
+    println!("  🎯 Testing YuNet Sensor Camera Enumeration:");
+    let sensor = YuNetFearSensor::new();
 
     match sensor.enumerate_cameras().await {
         Ok(cameras) => {
@@ -109,7 +111,7 @@ async fn test_camera_enumeration_onnx() -> Result<(), Box<dyn std::error::Error>
                     camera.id, camera.name, camera.resolution.0, camera.resolution.1);
             }
         }
-        Err(CameraError::NoCamerasFound) => {
+        Err(CameraError::NoCamerasAvailable) => {
             println!("    ⚠️  No cameras found on system");
             println!("       This may be expected in CI/headless environments");
         }
@@ -164,20 +166,20 @@ async fn test_fear_detection_mock() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 
-async fn test_fear_detection_onnx() -> Result<(), Box<dyn std::error::Error>> {
-    println!("  🎯 Testing ONNX Fear Detection:");
-    let mut sensor = OnnxFearSensor::new();
+async fn test_fear_detection_yunet() -> Result<(), Box<dyn std::error::Error>> {
+    println!("  🎯 Testing YuNet Fear Detection:");
+    let mut sensor = YuNetFearSensor::new();
     let config = FearConfig::default();
 
     // Initialize sensor
-    print!("    Initializing ONNX sensor... ");
+    print!("    Initializing YuNet sensor... ");
     match sensor.initialize(&config).await {
         Ok(_) => println!("✅"),
         Err(e) => {
             println!("❌");
             println!("      Error: {}", e);
-            println!("      This is expected if ONNX model or face detector files are missing");
-            println!("      In production, these files would be bundled with the application");
+            println!("      This is expected if YuNet model or emotion model files are missing");
+            println!("      In production, YuNet model is embedded in the binary");
             return Ok(()); // Don't fail the test, just note the limitation
         }
     }
@@ -225,7 +227,7 @@ async fn test_fear_detection_onnx() -> Result<(), Box<dyn std::error::Error>> {
     }
 
     // Stop sensor
-    print!("    Stopping ONNX sensor... ");
+    print!("    Stopping YuNet sensor... ");
     sensor.stop().await?;
     println!("✅");
 
@@ -236,7 +238,7 @@ async fn test_calibration_system_mock() -> Result<(), Box<dyn std::error::Error>
     // Create sensor with consistent fear values for calibration
     let mut sensor = MockFearSensor::new(vec![0.2; 20]); // Consistent values
     let config = FearConfig {
-        calibration_duration: 0.5, // Short calibration for testing
+        calibration_duration: Duration::from_millis(500), // Short calibration for testing
         camera: spectremesh_core::CameraConfig {
             fps: 20, // 20 FPS = 10 samples for 0.5 seconds
             ..Default::default()
@@ -306,11 +308,11 @@ async fn test_calibration_system_mock() -> Result<(), Box<dyn std::error::Error>
     Ok(())
 }
 
-async fn test_calibration_system_onnx() -> Result<(), Box<dyn std::error::Error>> {
-    println!("  🎯 Testing ONNX Calibration System:");
-    let mut sensor = OnnxFearSensor::new();
+async fn test_calibration_system_yunet() -> Result<(), Box<dyn std::error::Error>> {
+    println!("  🎯 Testing YuNet Calibration System:");
+    let mut sensor = YuNetFearSensor::new();
     let config = FearConfig {
-        calibration_duration: 2.0, // Longer calibration for real sensor
+        calibration_duration: Duration::from_secs(2), // Longer calibration for real sensor
         camera: spectremesh_core::CameraConfig {
             fps: 10, // Lower FPS for testing
             ..Default::default()
@@ -319,13 +321,13 @@ async fn test_calibration_system_onnx() -> Result<(), Box<dyn std::error::Error>
     };
 
     // Initialize sensor
-    print!("    Initializing ONNX sensor for calibration test... ");
+    print!("    Initializing YuNet sensor for calibration test... ");
     match sensor.initialize(&config).await {
         Ok(_) => println!("✅"),
         Err(e) => {
             println!("❌");
             println!("      Error: {}", e);
-            println!("      Skipping ONNX calibration test (model/camera not available)");
+            println!("      Skipping YuNet calibration test (model/camera not available)");
             return Ok(());
         }
     }
@@ -387,13 +389,13 @@ async fn test_calibration_system_onnx() -> Result<(), Box<dyn std::error::Error>
             }
         }
         Err(e) => {
-            println!("    ❌ Failed to start ONNX sensor: {}", e);
+            println!("    ❌ Failed to start YuNet sensor: {}", e);
             println!("      This is expected if camera is not available");
         }
     }
 
     sensor.stop().await?;
-    println!("    ✅ ONNX calibration system test completed");
+    println!("    ✅ YuNet calibration system test completed");
 
     Ok(())
 }
@@ -418,17 +420,17 @@ mod tests {
     }
 
     #[tokio::test]
-    async fn test_spectreprobe_camera_enumeration_onnx() {
-        assert!(test_camera_enumeration_onnx().await.is_ok());
+    async fn test_spectreprobe_camera_enumeration_yunet() {
+        assert!(test_camera_enumeration_yunet().await.is_ok());
     }
 
     #[tokio::test]
-    async fn test_spectreprobe_fear_detection_onnx() {
-        assert!(test_fear_detection_onnx().await.is_ok());
+    async fn test_spectreprobe_fear_detection_yunet() {
+        assert!(test_fear_detection_yunet().await.is_ok());
     }
 
     #[tokio::test]
-    async fn test_spectreprobe_calibration_onnx() {
-        assert!(test_calibration_system_onnx().await.is_ok());
+    async fn test_spectreprobe_calibration_yunet() {
+        assert!(test_calibration_system_yunet().await.is_ok());
     }
 }

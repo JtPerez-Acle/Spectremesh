@@ -41,9 +41,7 @@ impl FearCalibrator {
     /// Compute mean and standard deviation from baseline samples
     fn compute_baseline(&mut self) -> Result<(), FearError> {
         if self.baseline_samples.is_empty() {
-            return Err(FearError::CalibrationIncomplete { 
-                needed: self.target_samples 
-            });
+            return Err(FearError::CalibrationIncomplete);
         }
 
         // Calculate mean

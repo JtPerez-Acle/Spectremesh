@@ -59,7 +59,7 @@ impl MockFearSensor {
 impl FearSensor for MockFearSensor {
     async fn initialize(&mut self, config: &FearConfig) -> Result<(), FearError> {
         self.calibrator = Some(FearCalibrator::new(
-            config.calibration_duration,
+            config.calibration_duration.as_secs_f32(),
             config.camera.fps as f32,
         ));
         self.running = false;
@@ -123,7 +123,7 @@ impl FearSensor for MockFearSensor {
                     let normalized_fear = calibrator.normalize_fear(fear_logit);
                     FearScore::new_calibrated(normalized_fear, raw_logits, 0.9)
                 } else {
-                    FearScore::new_uncalibrated(raw_logits, 0.9)
+                    FearScore::new_uncalibrated(fear_logit, raw_logits, 0.9)
                 };
 
                 // Try to send with back-pressure handling
@@ -209,7 +209,7 @@ mod tests {
     async fn test_mock_sensor_fear_generation() {
         let mut sensor = MockFearSensor::new(vec![0.1, 0.8, 0.3]);
         let config = FearConfig {
-            calibration_duration: 0.1, // Very short for testing
+            calibration_duration: Duration::from_millis(100), // Very short for testing
             ..FearConfig::default()
         };
         
@@ -254,7 +254,7 @@ mod tests {
     async fn test_mock_sensor_calibration() {
         let mut sensor = MockFearSensor::new(vec![0.2; 10]); // Constant fear for calibration
         let config = FearConfig {
-            calibration_duration: 0.3, // 0.3 seconds
+            calibration_duration: Duration::from_millis(300), // 0.3 seconds
             camera: spectremesh_core::CameraConfig {
                 fps: 30, // 30 FPS = ~9 samples for calibration
                 ..Default::default()
