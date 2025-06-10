@@ -1,0 +1,16 @@
+SpectreMesh Camera Debug Frame 10
+=====================================
+Timestamp: SystemTime { tv_sec: 1749591148, tv_nsec: 539009357 }
+Resolution: 800x448 pixels
+Channels: 3
+Data type: 16
+Total pixels: 358400
+Frame size in bytes: 1075200
+
+This frame was captured to help debug face detection issues.
+If this information looks correct, the camera hardware is working.
+Face detection issues are likely due to:
+- Lighting conditions
+- Face positioning/angle
+- Distance from camera
+- YuNet model sensitivity

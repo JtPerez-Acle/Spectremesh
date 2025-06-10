@@ -10,12 +10,24 @@ license = "MIT"
 name = "sensor_fuzzer"
 path = "src/bin/sensor_fuzzer.rs"
 
+[[bin]]
+name = "performance_test"
+path = "src/bin/performance_test.rs"
+
+[[bin]]
+name = "interactive_camera_test"
+path = "src/bin/interactive_camera_test.rs"
+
+[[bin]]
+name = "camera_viewer"
+path = "src/bin/camera_viewer.rs"
+
 [dependencies]
 # Workspace crates
 spectremesh-core = { path = "../crates/core" }
 
 # Computer vision
-opencv = { workspace = true, features = ["imgproc", "objdetect", "videoio"] }
+opencv = { workspace = true, features = ["imgproc", "objdetect", "videoio", "highgui", "imgcodecs"] }
 
 # ONNX runtime with optimizations
 ort = { workspace = true }
